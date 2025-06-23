@@ -92,6 +92,10 @@ export class av01SampleEntry extends VisualSampleEntry {
   }
 }
 
+export class cuvvSampleEntry extends VisualSampleEntry {
+  static override readonly fourcc = 'cuvv' as const;
+}
+
 export class dav1SampleEntry extends VisualSampleEntry {
   static override readonly fourcc = 'dav1' as const;
 }
