@@ -49,6 +49,7 @@ export * from '#/boxes/irot';
 export * from '#/boxes/ispe';
 export * from '#/boxes/itai';
 export * from '#/boxes/kind';
+export * from '#/boxes/lavc';
 export * from '#/boxes/leva';
 export * from '#/boxes/lhvC';
 export * from '#/boxes/lsel';
