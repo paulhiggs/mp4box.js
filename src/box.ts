@@ -4,11 +4,10 @@
  */
 
 import { MultiBufferStream } from '#/buffer';
-import { MAX_SIZE } from '#/constants';
-import { DataStream, Endianness } from '#/DataStream';
+import { MAX_UINT32 } from '#/constants';
+import { DataStream } from '#/DataStream';
 import { Log } from '#/log';
-import { MP4BoxStream } from '#/stream';
-import type { BoxFourCC, Extends, Output, Reference } from '@types';
+import type { BoxFourCC, Output, Reference } from '@types';
 import type { mdatBox } from 'entries/all-boxes';
 
 export class Box {
@@ -32,7 +31,7 @@ export class Box {
   #type?: string;
   static readonly fourcc?: string;
 
-  get type(): string | undefined {
+  get type(): string {
     return (this.constructor as typeof Box).fourcc ?? this.#type;
   }
   set type(value: string) {
@@ -41,7 +40,7 @@ export class Box {
 
   constructor(public size = 0) {}
 
-  addBox<T extends Extends<this, Box>>(box: T): T {
+  addBox<T extends Box>(box: T): T {
     if (!this.boxes) {
       this.boxes = [];
     }
@@ -71,7 +70,7 @@ export class Box {
   /** @bundle box-write.js */
   writeHeader(stream: DataStream, msg?: string) {
     this.size += 8;
-    if (this.size > MAX_SIZE || this.original_size === 1) {
+    if (this.size > MAX_UINT32 || this.original_size === 1) {
       this.size += 8;
     }
     if (this.type === 'uuid') {
@@ -89,13 +88,13 @@ export class Box {
     );
     if (this.original_size === 0) {
       stream.writeUint32(0);
-    } else if (this.size > MAX_SIZE || this.original_size === 1) {
+    } else if (this.size > MAX_UINT32 || this.original_size === 1) {
       stream.writeUint32(1);
     } else {
       this.sizePosition = stream.getPosition();
       stream.writeUint32(this.size);
     }
-    stream.writeString(this.type, null, 4);
+    stream.writeString(this.type, undefined, 4);
     if (this.type === 'uuid') {
       const uuidBytes = new Uint8Array(16);
       for (let i = 0; i < 16; i++) {
@@ -103,7 +102,7 @@ export class Box {
       }
       stream.writeUint8Array(uuidBytes);
     }
-    if (this.size > MAX_SIZE || this.original_size === 1) {
+    if (this.size > MAX_UINT32 || this.original_size === 1) {
       this.sizePosition = stream.getPosition();
       stream.writeUint64(this.size);
     }
@@ -120,6 +119,10 @@ export class Box {
           const u8 = new Uint8Array(buffer);
           stream.writeUint8Array(u8);
         }
+      } else if (box.data) {
+        this.size = box.data.length;
+        this.writeHeader(stream);
+        stream.writeUint8Array(box.data);
       }
     } else {
       this.size = this.data ? this.data.length : 0;
@@ -133,7 +136,7 @@ export class Box {
   /** @bundle box-print.js */
   printHeader(output: Output) {
     this.size += 8;
-    if (this.size > MAX_SIZE) {
+    if (this.size > MAX_UINT32) {
       this.size += 8;
     }
     if (this.type === 'uuid') {
@@ -149,7 +152,7 @@ export class Box {
   }
 
   /** @bundle box-parse.js */
-  parse(stream: MultiBufferStream | MP4BoxStream) {
+  parse(stream: MultiBufferStream) {
     if (this.type !== 'mdat') {
       this.data = stream.readUint8Array(this.size - this.hdr_size);
     } else {
@@ -162,7 +165,7 @@ export class Box {
   }
 
   /** @bundle box-parse.js */
-  parseDataAndRewind(stream: MultiBufferStream | MP4BoxStream) {
+  parseDataAndRewind(stream: MultiBufferStream) {
     this.data = stream.readUint8Array(this.size - this.hdr_size);
     // rewinding
     stream.seek(this.start + this.hdr_size);
@@ -181,11 +184,10 @@ export class Box {
   /** @bundle isofile-advanced-creation.js */
   computeSize(stream_?: MultiBufferStream) {
     const stream = stream_ || new MultiBufferStream();
-    stream.endianness = Endianness.BIG_ENDIAN;
     this.write(stream);
   }
 
-  isEndOfBox(stream: MultiBufferStream | MP4BoxStream): boolean {
+  isEndOfBox(stream: MultiBufferStream): boolean {
     const pos = stream.getPosition();
     const end = this.start + this.size;
     return pos === end;
@@ -332,7 +334,7 @@ export class TrackReferenceTypeBox extends Box {
     this.type = fourcc as BoxFourCC;
   }
 
-  parse(stream: MultiBufferStream | MP4BoxStream | DataStream) {
+  parse(stream: MultiBufferStream | DataStream) {
     this.track_ids = stream.readUint32Array((this.size - this.hdr_size) / 4);
   }
 

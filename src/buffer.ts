@@ -1,4 +1,4 @@
-import { DataStream, Endianness } from '#/DataStream';
+import { DataStream } from '#/DataStream';
 import { Log } from '#/log';
 import { MP4BoxBuffer } from '#/mp4boxbuffer';
 
@@ -31,7 +31,7 @@ export class MultiBufferStream extends DataStream {
   bufferIndex: number;
 
   constructor(buffer?: MP4BoxBuffer) {
-    super(new ArrayBuffer(), 0, Endianness.BIG_ENDIAN);
+    super(new ArrayBuffer(), 0);
     // List of ArrayBuffers, with a fileStart property, sorted in fileStart order and non-overlapping
     this.buffers = [];
     this.bufferIndex = -1;
@@ -411,7 +411,7 @@ export class MultiBufferStream extends DataStream {
    * @return {Number} the position in the file
    */
   getPosition() {
-    if (this.bufferIndex === -1 || this.buffers[this.bufferIndex] === null) return 0;
+    if (this.bufferIndex === -1 || this.buffers[this.bufferIndex] === undefined) return 0;
     return this.buffers[this.bufferIndex].fileStart + this.position;
   }
 
@@ -424,7 +424,7 @@ export class MultiBufferStream extends DataStream {
   }
 
   getEndPosition() {
-    if (this.bufferIndex === -1 || this.buffers[this.bufferIndex] === null) return 0;
+    if (this.bufferIndex === -1 || this.buffers[this.bufferIndex] === undefined) return 0;
     return this.buffers[this.bufferIndex].fileStart + this.byteLength;
   }
 

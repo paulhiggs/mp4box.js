@@ -139,12 +139,12 @@ export class trakBox extends ContainerBox {
   tkhds: Array<tkhdBox>;
   tref: trefBox;
   trefs: Array<trefBox>;
-  edts: edtsBox;
+  edts?: edtsBox;
   edtss: Array<edtsBox>;
   udta: udtaBox;
   udtas: Array<udtaBox>;
   samples_duration: number;
-  samples: Array<Sample>;
+  samples: Array<Sample> = [];
   samples_size: number;
   nextSample: number;
   lastValidSample: number;
@@ -156,7 +156,7 @@ export class trakBox extends ContainerBox {
 export class edtsBox extends ContainerBox {
   static override readonly fourcc = 'edts' as const;
   box_name = 'EditBox' as const;
-  elst: elstBox;
+  elst?: elstBox;
   elsts: Array<elstBox>;
 }
 export class mdiaBox extends ContainerBox {
@@ -358,4 +358,9 @@ export class etypBox extends ContainerBox {
   box_name = 'ExtendedTypeBox' as const;
   tycos: Array<tycoBox> = [];
   subBoxNames = ['tyco'] as const;
+}
+export class povdBox extends ContainerBox {
+  static override readonly fourcc = 'povd' as const;
+  box_name = 'ProjectedOmniVideoBox' as const;
+  subBoxNames = ['prfr'] as const;
 }

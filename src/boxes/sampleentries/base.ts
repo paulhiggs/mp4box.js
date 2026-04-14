@@ -1,8 +1,12 @@
 import { ContainerBox } from '#/containerBox';
 import type { MultiBufferStream } from '#/buffer';
 import { Log } from '#/log';
+import type { av1CBox } from '../av1C';
 import type { avcCBox } from '../avcC';
 import type { hvcCBox } from '../hvcC';
+import type { lvcCBox } from '../lvcC';
+import type { vpcCBox } from '../vpcC';
+import type { vvcCBox } from '../vvcC';
 
 export class SampleEntry extends ContainerBox {
   static override readonly registryId = Symbol.for('SampleEntryIdentifier');
@@ -158,10 +162,12 @@ export class TextSampleEntry extends SampleEntry {}
 
 //Base SampleEntry types for Audio and Video with specific parsing
 export class VisualSampleEntry extends SampleEntry {
+  av1C?: av1CBox;
   avcC?: avcCBox;
-  avcCs?: Array<avcCBox>;
   hvcC?: hvcCBox;
-  hvcCs?: Array<hvcCBox>;
+  lvcC?: lvcCBox;
+  vpcC?: vpcCBox;
+  vvcC?: vvcCBox;
 
   width: number;
   height: number;
@@ -223,7 +229,7 @@ export class VisualSampleEntry extends SampleEntry {
     stream.writeUint32(0);
     stream.writeUint16(this.frame_count);
     stream.writeUint8(Math.min(31, this.compressorname.length));
-    stream.writeString(this.compressorname, null, 31);
+    stream.writeString(this.compressorname, undefined, 31);
     stream.writeUint16(this.depth);
     stream.writeInt16(-1);
     this.writeFooter(stream);
@@ -231,18 +237,34 @@ export class VisualSampleEntry extends SampleEntry {
 }
 
 export class AudioSampleEntry extends SampleEntry {
+  version: number;
   channel_count: number;
   samplesize: number;
   samplerate: number;
 
+  // Quicktime only
+  extensions: Uint8Array;
+
   parse(stream: MultiBufferStream) {
     this.parseHeader(stream);
-    stream.readUint32Array(2);
+    this.version = stream.readUint16();
+    stream.readUint16(); // revision
+    stream.readUint32(); // vendor
     this.channel_count = stream.readUint16();
     this.samplesize = stream.readUint16();
     stream.readUint16();
     stream.readUint16();
     this.samplerate = stream.readUint32() / (1 << 16);
+
+    const isQT = stream.isofile?.ftyp?.major_brand.includes('qt');
+    if (isQT) {
+      if (this.version === 1) {
+        this.extensions = stream.readUint8Array(16);
+      } else if (this.version === 2) {
+        this.extensions = stream.readUint8Array(36);
+      }
+    }
+
     this.parseFooter(stream);
   }
 

@@ -44,12 +44,11 @@ npm install mp4box@latest
 
 ## Demos
 
-- [A player that performs on-the-fly fragmentation](./test/index.html)
-- [A file inspection tool](./test/filereader.html)
-- [A basic file segmenter](./test/file-segmenter.html)
-- [A file diff tool](./test/filediff.html)
-- [An MSE-based AVIF viewing tool](./test/mse-avif-viewer.html)
-- [QUnit tests](./test/qunit.html)
+- [A player that performs on-the-fly fragmentation](./demo/index.html)
+- [A file inspection tool](./demo/filereader.html)
+- [A basic file segmenter](./demo/file-segmenter.html)
+- [A file diff tool](./demo/filediff.html)
+- [An MSE-based AVIF viewing tool](./demo/mse-avif-viewer.html)
 
 ## API
 
@@ -156,7 +155,7 @@ The `info` argument is an object with the following structure.
 - **duration**: Number, providing the duration of the movie (unfragmented part) in timescale units,
 - **isProgressive**: boolean, indicating if the file can be played progressively,
 - **isFragmented**: boolean, indicating if the file is already fragmented,
-- **fragment_duration**: Number, giving the duration of the fragmented part of the file, in timescale units,
+- **fragment_duration**: Fraction, giving the duration of the fragmented part of the file along with the timescale (in the form `{ num: Number, den: Number }`)
 - **hasIOD**: boolean, indicating if the file contains an MPEG-4 Initial Object Descriptor
 - **tracks**: Array of track information objects
 
@@ -383,9 +382,10 @@ mp4boxfile.releaseUsedSamples(1, 250);
 
 For every flavor, tsup builds ESM, CJS, and IIFE versions of the library, which can be used in different environments (browser, Node.js, etc.). The IIFE version is not distributed to npm, but utilized in the demos.
 
-Run the following command to build the library:
+Install dependencies, then build the library:
 
 ```bash
+npm install
 npm run build
 ```
 
