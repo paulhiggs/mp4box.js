@@ -687,7 +687,7 @@ export class ISOFile<TSegmentUser = unknown, TSampleUser = unknown> {
         }
       }
 
-      if (trak.edts) {
+      if (trak.edts !== undefined && trak.edts.elst !== undefined) {
         track.edits = trak.edts.elst.entries;
       }
 
@@ -954,7 +954,7 @@ export class ISOFile<TSegmentUser = unknown, TSampleUser = unknown> {
   }
 
   /* Find and return specific boxes using recursion and early return */
-  getBox<T extends AllIdentifiers>(type: T): AllRegisteredBoxes[T] {
+  getBox<T extends AllIdentifiers>(type: T): AllRegisteredBoxes[T] | undefined {
     const result = this.getBoxes(type, true);
     return result.length ? result[0] : undefined;
   }
@@ -2513,7 +2513,6 @@ export class ISOFile<TSegmentUser = unknown, TSampleUser = unknown> {
     const endBufferIndex = this.stream.findPosition(true, mdat.start + mdat.size, false);
 
     if (startBufferIndex === -1 || endBufferIndex === -1) {
-      console.trace(mdat, startBufferIndex, endBufferIndex);
       Log.warn('ISOFile', "Cannot transfer 'mdat' data, start or end buffer not found");
       return;
     }

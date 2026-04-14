@@ -44,12 +44,11 @@ npm install mp4box@latest
 
 ## Demos
 
-- [A player that performs on-the-fly fragmentation](./test/index.html)
-- [A file inspection tool](./test/filereader.html)
-- [A basic file segmenter](./test/file-segmenter.html)
-- [A file diff tool](./test/filediff.html)
-- [An MSE-based AVIF viewing tool](./test/mse-avif-viewer.html)
-- [QUnit tests](./test/qunit.html)
+- [A player that performs on-the-fly fragmentation](./demo/index.html)
+- [A file inspection tool](./demo/filereader.html)
+- [A basic file segmenter](./demo/file-segmenter.html)
+- [A file diff tool](./demo/filediff.html)
+- [An MSE-based AVIF viewing tool](./demo/mse-avif-viewer.html)
 
 ## API
 
@@ -383,9 +382,10 @@ mp4boxfile.releaseUsedSamples(1, 250);
 
 For every flavor, tsup builds ESM, CJS, and IIFE versions of the library, which can be used in different environments (browser, Node.js, etc.). The IIFE version is not distributed to npm, but utilized in the demos.
 
-Run the following command to build the library:
+Install dependencies, then build the library:
 
 ```bash
+npm install
 npm run build
 ```
 
