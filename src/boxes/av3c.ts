@@ -4,7 +4,7 @@
  */
 
 import { Box } from '#/box';
-import { MP4BoxStream } from '#/stream';
+import type { MultiBufferStream } from '#/buffer';
 import { BitBuffer } from '#/BitBuffer';
 
 import {
@@ -499,7 +499,7 @@ export class av3cBox extends Box {
   sequence_header?: AVS3SequenceHeader;
   library_dependency_idc?: BinaryValue;
 
-  parse(stream: MP4BoxStream) {
+  parse(stream: MultiBufferStream) {
     const bit_reader = new BitBuffer();
     this.configurationVersion = new DescribedValue(stream.readUint8(), AVS3Vconfiguration);
     if (this.configurationVersion.value === 1) {

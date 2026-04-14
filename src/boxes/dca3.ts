@@ -4,7 +4,7 @@
  */
 
 import { Box } from '#/box';
-import { MP4BoxStream } from '#/stream';
+import type { MultiBufferStream } from '#/buffer';
 import { BitBuffer } from '#/BitBuffer';
 
 import { DescribedValue, AVS3data } from './avs-common';
@@ -223,7 +223,7 @@ export class dca3Box extends Box {
   private Avs3AudioGHConfig?: AVS3GHConfig;
   private Avs3AudioLLConfig?: AVS3LLConfig;
 
-  parse(stream: MP4BoxStream) {
+  parse(stream: MultiBufferStream) {
     const bit_reader = new BitBuffer();
     for (let i = 0; i < this.size - this.hdr_size; i++) bit_reader.appendUint8(stream.readUint8());
     this.audio_codec_id = new DescribedValue(bit_reader.getBits(4), AVS3Acodec);
