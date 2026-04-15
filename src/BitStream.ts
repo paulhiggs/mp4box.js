@@ -23,6 +23,22 @@ class State {
     this.rbyte = this.rbit = this.wbyte = this.wbit = this.end = 0;
     this.read_error = this.write_error = false;
   }
+
+  readBitOffset(): number {
+    return 8 * this.rbyte + this.rbit;
+  }
+  readByteOffset() {
+    return this.rbyte;
+  }
+  writeBitOffset(): number {
+    return 8 * this.wbyte + this.wbit;
+  }
+  writeByteOffset() {
+    return this.wbyte;
+  }
+  aligned() {
+    return this.read_error && this.rbit !== 0;
+  }
 }
 
 export class BitStream {
@@ -85,7 +101,7 @@ export class BitStream {
     return this.readBit() !== 0;
   }
 
-  private _rdb(bytes: number): number {
+  private rdb = function (bytes: number): number {
     let i: number, res: number;
     // eslint-disable-next-line no-loss-of-precision
     const ff = 0xffffffffffffffff;
@@ -125,70 +141,70 @@ export class BitStream {
       }
     }
     return ff; // we should never get here!!
-  }
+  };
 
   readUint8() {
-    return this._rdb(1);
+    return this.rdb(1);
   }
 
   readUint16() {
-    return this.big_endian ? this._GetUInt16BE(this._rdb(2)) : this._GetUInt16LE(this._rdb(2));
+    return this.big_endian ? this.GetUInt16BE(this.rdb(2)) : this.GetUInt16LE(this.rdb(2));
   }
-  private _ByteSwap16 = function (x: number): number {
+  private ByteSwap16 = function (x: number): number {
     return (x << 8) | (x >> 8);
   };
-  private _CondByteSwap16BE = function (val: number): number {
+  private CondByteSwap16BE = function (val: number): number {
     return this.OSisLittleEndian() ? this._ByteSwap16(val) : val;
   };
-  private _CondByteSwap16LE = function (val: number) {
+  private CondByteSwap16LE = function (val: number) {
     return this.OSisLittleEndian() ? val : this._ByteSwap16(val);
   };
-  private _GetUInt16BE = function (val: number) {
+  private GetUInt16BE = function (val: number) {
     return this._CondByteSwap16BE(val);
   };
-  private _GetUInt16LE = function (val: number) {
-    return this._CondByteSwap16LE(val);
+  private GetUInt16LE = function (val: number) {
+    return this.CondByteSwap16LE(val);
   };
 
   readUint24() {
-    return this.big_endian ? this._GetUInt24BE(this._rdb(3)) : this._GetUInt24LE(this._rdb(3));
+    return this.big_endian ? this.GetUInt24BE(this.rdb(3)) : this.GetUInt24LE(this.rdb(3));
   }
 
-  private _ByteSwap24 = function (x: number) {
+  private ByteSwap24 = function (x: number) {
     return ((x & 0xff0000) >> 16) | (x & 0xff00) | (x & (0xff << 16));
   };
-  private _CondByteSwap24BE = function (val: number) {
-    return this.OSisLittleEndian() ? this._ByteSwap24(val) : val;
+  private CondByteSwap24BE = function (val: number) {
+    return this.OSisLittleEndian() ? this.ByteSwap24(val) : val;
   };
-  private _CondByteSwap24LE = function (val: number) {
+  private CondByteSwap24LE = function (val: number) {
     return this.OSisLittleEndian() ? val : this._ByteSwap24(val);
   };
-  private _GetUInt24BE = function (val: number) {
+  private GetUInt24BE = function (val: number) {
     return this._CondByteSwap24BE(val);
   };
-  private _GetUInt24LE = function (val: number) {
+  private GetUInt24LE = function (val: number) {
     return this._CondByteSwap24LE(val);
   };
 
   readUint32() {
-    return this.big_endian ? this._GetUInt32BE(this._rdb(4)) : this._GetUInt32LE(this._rdb(4));
+    return this.big_endian ? this.GetUInt32BE(this.rdb(4)) : this._GetUInt32LE(this.rdb(4));
   }
 
-  private _ByteSwap32(x: number) {
+  private _ByteSwap32 = function (x: number) {
     return (x << 24) | ((x << 8) & 0x00ff0000) | ((x >> 8) & 0x0000ff00) | (x >> 24);
-  }
-  private _CondByteSwap32BE(val: number) {
+  };
+  private CondByteSwap32BE = function (val: number) {
     return this.OSisLittleEndian() ? this._ByteSwap32(val) : val;
-  }
-  private _CondByteSwap32LE(val: number) {
+  };
+  private CondByteSwap32LE = function (val: number) {
     return this.OSisLittleEndian() ? val : this._ByteSwap32(val);
-  }
-  private _GetUInt32BE(val: number) {
-    return this._CondByteSwap32BE(val);
-  }
-  private _GetUInt32LE(val: number) {
-    return this._CondByteSwap32LE(val);
-  }
+  };
+  private GetUInt32BE = function (val: number) {
+    return this.CondByteSwap32BE(val);
+  };
+  private _GetUInt32LE = function (val: number) {
+    return this.CondByteSwap32LE(val);
+  };
 
   readBits(bits: number): number {
     // No read if read error is already set or not enough bits to read.
@@ -280,7 +296,7 @@ export class BitStream {
   }
 
   byte_alignment(): void {
-    while (!this.state.read_error && this.state.rbit !== 0) this.skipBit();
+    while (!this.state.aligned) this.skipBit();
   }
 
   private OSisLittleEndian(): boolean {
@@ -288,16 +304,16 @@ export class BitStream {
   }
 
   currentReadByteOffset(): number {
-    return this.state.rbyte;
+    return this.state.readByteOffset();
   }
   currentReadBitOffset(): number {
-    return 8 * this.state.rbyte + this.state.rbit;
+    return this.state.readBitOffset();
   }
   currentWriteByteOffset(): number {
-    return this.state.wbyte;
+    return this.state.writeByteOffset();
   }
   currentWriteBitOffset(): number {
-    return 8 * this.state.wbyte + this.state.wbit;
+    return this.state.writeBitOffset();
   }
   bitsRemaining(): number {
     return this.currentWriteBitOffset() - this.currentReadBitOffset();
