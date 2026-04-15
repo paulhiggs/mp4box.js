@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Paul Higgs
+ * Copyright (c) 2026. Paul Higgs
  * License: BSD-3-Clause (see LICENSE file)
  *
  *
@@ -7,7 +7,8 @@
  * TODO: add writing support
  */
 
-import { Endianness } from '#/DataStream';
+import { DataStream, Endianness } from '#/DataStream';
+import type { MultiBufferStream } from './buffer';
 
 class State {
   rbyte: number;
@@ -19,33 +20,24 @@ class State {
   write_error: boolean;
 
   constructor() {
-    this.rbyte = this.rbit = this.rbyte = this.rbit = this.end - 0;
+    this.rbyte = this.rbit = this.wbyte = this.wbit = this.end = 0;
     this.read_error = this.write_error = false;
   }
 }
 
-export class BitBuffer {
-  private endianness: Endianness;
+export class BitStream {
   private _buffer: Array<number>;
+  private _stream: MultiBufferStream | DataStream;
   private _state: State;
   private _big_endian = true; // results are returned Big Endian
 
-  constructor(stream?: Uint8Array, endianness?: Endianness) {
+  constructor(stream: MultiBufferStream | DataStream) {
     this._state = new State();
-    this.load(stream ? stream : new Uint8Array([]));
-    this.endianness = endianness ? endianness : this._ENDIANNESS();
+    this._stream = stream;
   }
 
-  load(stream: Uint8Array): void {
-    this._buffer = [...stream];
-    this._state.rbit = this._state.rbyte = 0;
-    this._state.wbit = 0;
-    this._state.wbyte = this._state.end = this._buffer.length;
-    this._state.read_error = this._state.write_error = false;
-  }
-
-  appendUint8(byte: number): void {
-    this._buffer.push(byte);
+  appendUint8(count = 1): void {
+    for (let i = 0; i < count; i++) this._buffer.push(this._stream.readUint8());
     this._state.end = this._state.wbyte = this._buffer.length;
   }
 
@@ -57,7 +49,7 @@ export class BitBuffer {
     }
   }
 
-  getBit(): number {
+  readBit(): number {
     //! Read the next bit and advance the read pointer.
     if (this._state.read_error || this.endOfRead()) {
       this._state.read_error = true;
@@ -137,17 +129,17 @@ export class BitBuffer {
     return ff; // we should never get here!!
   }
 
-  getUint8() {
+  readUint8() {
     return this._rdb(1);
   }
 
-  getUint16() {
+  readUint16() {
     return this._big_endian ? this._GetUInt16BE(this._rdb(2)) : this._GetUInt16LE(this._rdb(2));
   }
-  private _ByteSwap16 = function (x) {
+  private _ByteSwap16 = function (x: number): number {
     return (x << 8) | (x >> 8);
   };
-  private _CondByteSwap16BE = function (val: number) {
+  private _CondByteSwap16BE = function (val: number): number {
     return this._OSisLittleEndian() ? this._ByteSwap16(val) : val;
   };
   private _CondByteSwap16LE = function (val: number) {
@@ -160,7 +152,7 @@ export class BitBuffer {
     return this._CondByteSwap16LE(val);
   };
 
-  getUint24() {
+  readUint24() {
     return this._big_endian ? this._GetUInt24BE(this._rdb(3)) : this._GetUInt24LE(this._rdb(3));
   }
 
@@ -180,7 +172,7 @@ export class BitBuffer {
     return this._CondByteSwap24LE(val);
   };
 
-  getUint32() {
+  readUint32() {
     return this._big_endian ? this._GetUInt32BE(this._rdb(4)) : this._GetUInt32LE(this._rdb(4));
   }
 
@@ -200,7 +192,7 @@ export class BitBuffer {
     return this._CondByteSwap32LE(val);
   }
 
-  getBits(bits: number): number {
+  readBits(bits: number): number {
     // No read if read error is already set or not enough bits to read.
     if (
       this._state.read_error ||
@@ -278,7 +270,7 @@ export class BitBuffer {
     return this.skipBits(1);
   }
 
-  getUE(): number {
+  readUE(): number {
     // read in an unsigned Exp-Golomb code;
     if (this.getBit() === 1) return 0;
     let zero_count = 1;
@@ -294,15 +286,7 @@ export class BitBuffer {
   }
 
   private _OSisLittleEndian(): boolean {
-    return this.endianness === Endianness.LITTLE_ENDIAN;
-  }
-
-  private _ENDIANNESS(): Endianness {
-    const buf = new ArrayBuffer(4);
-    const u32data = new Uint32Array(buf);
-    const u8data = new Uint8Array(buf);
-    u32data[0] = 0xcafebabe;
-    return u8data[3] === 0xca ? Endianness.BIG_ENDIAN : Endianness.LITTLE_ENDIAN;
+    return this._stream.endianness === Endianness.LITTLE_ENDIAN;
   }
 
   currentReadByteOffset(): number {
@@ -317,7 +301,7 @@ export class BitBuffer {
   currentWriteBitOffset(): number {
     return 8 * this._state.wbyte + this._state.wbit;
   }
-  bitsRemaining() {
+  bitsRemaining(): number {
     return this.currentWriteBitOffset() - this.currentReadBitOffset();
   }
   writeBitsRemaining(): number {

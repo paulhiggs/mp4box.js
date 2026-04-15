@@ -5,7 +5,7 @@
 
 import { Box } from '#/box';
 import type { MultiBufferStream } from '#/buffer';
-import { BitBuffer } from '#/BitBuffer';
+import { BitStream } from '#/BitStream';
 
 import { DescribedValue, AVS3data } from './avs-common';
 
@@ -97,12 +97,12 @@ interface GAconfig {
 }
 class AVS3GAConfig extends AVS3data {
   data: GAconfig;
-  constructor(bit_reader: BitBuffer) {
+  constructor(bit_reader: BitStream) {
     super();
     this.data = {};
     this.deserialise(bit_reader);
   }
-  deserialise(bit_reader: BitBuffer) {
+  deserialise(bit_reader: BitStream) {
     this.data.sampling_frequency_index = new DescribedValue(
       bit_reader.getBits(4),
       AVS3Asampling_frequency,
@@ -151,12 +151,12 @@ interface GHconfig {
 }
 class AVS3GHConfig extends AVS3data {
   data: GHconfig;
-  constructor(bit_reader: BitBuffer) {
+  constructor(bit_reader: BitStream) {
     super();
     this.data = {};
     this.deserialise(bit_reader);
   }
-  deserialise(bit_reader: BitBuffer) {
+  deserialise(bit_reader: BitStream) {
     this.data.sampling_frequency_index = bit_reader.getBits(4);
     this.data.anc_data_index = bit_reader.getBit();
     this.data.coding_profile = new DescribedValue(bit_reader.getBits(3), AVS3Acodingprofile);
@@ -188,12 +188,12 @@ interface LLconfig {
 }
 class AVS3LLConfig extends AVS3data {
   data: LLconfig;
-  constructor(bit_reader: BitBuffer) {
+  constructor(bit_reader: BitStream) {
     super();
     this.data = {};
     this.deserialise(bit_reader);
   }
-  deserialise(bit_reader: BitBuffer) {
+  deserialise(bit_reader: BitStream) {
     this.data.sampling_frequency_index = bit_reader.getBits(4);
     if (this.data.sampling_frequency_index === 0xf)
       this.data.sampling_frequency = bit_reader.getUint24();
@@ -224,8 +224,8 @@ export class dca3Box extends Box {
   private Avs3AudioLLConfig?: AVS3LLConfig;
 
   parse(stream: MultiBufferStream) {
-    const bit_reader = new BitBuffer();
-    for (let i = 0; i < this.size - this.hdr_size; i++) bit_reader.appendUint8(stream.readUint8());
+    const bit_reader = new BitStream(stream);
+    bit_reader.appendUint8(this.size - this.hdr_size);
     this.audio_codec_id = new DescribedValue(bit_reader.getBits(4), AVS3Acodec);
 
     switch (this.audio_codec_id.value) {

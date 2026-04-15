@@ -5,7 +5,7 @@
 
 import { Box } from '#/box';
 import type { MultiBufferStream } from '#/buffer';
-import { BitBuffer } from '#/BitBuffer';
+import { BitStream } from '#/BitStream';
 
 import {
   DescribedValue,
@@ -82,7 +82,7 @@ class WeightQuantMatrix {
   WeightQuantMatrix4x4: Array<Array<number>>;
   WeightQuantMatrix8x8: Array<Array<number>>;
 
-  constructor(reader: BitBuffer) {
+  constructor(reader: BitStream) {
     this.WeightQuantMatrix4x4 = [];
     this.WeightQuantMatrix8x8 = [];
 
@@ -310,12 +310,12 @@ interface SequenceHeaderElements {
 class AVS3SequenceHeader extends AVS3data {
   data: SequenceHeaderElements;
 
-  constructor(bit_reader: BitBuffer) {
+  constructor(bit_reader: BitStream) {
     super();
     this.data = {};
     this.deserialise(bit_reader);
   }
-  deserialise(bit_reader: BitBuffer) {
+  deserialise(bit_reader: BitStream) {
     this.data.video_sequence_start_code = new HexadecimalValue(bit_reader.getUint32());
     this.data.profile_id = new HexadecimalValue(bit_reader.getUint8(), AVS3profile);
     this.data.level_id = new HexadecimalValue(bit_reader.getUint8(), AVS3level);
@@ -500,12 +500,11 @@ export class av3cBox extends Box {
   library_dependency_idc?: BinaryValue;
 
   parse(stream: MultiBufferStream) {
-    const bit_reader = new BitBuffer();
+    const bit_reader = new BitStream(stream);
     this.configurationVersion = new DescribedValue(stream.readUint8(), AVS3Vconfiguration);
     if (this.configurationVersion.value === 1) {
       this.sequence_header_length = stream.readUint16();
-      for (let i = 0; i < this.sequence_header_length; i++)
-        bit_reader.appendUint8(stream.readUint8());
+      bit_reader.appendUint8(this.sequence_header_length);
 
       this.sequence_header = new AVS3SequenceHeader(bit_reader);
 
