@@ -104,34 +104,34 @@ class AVS3GAConfig extends AVS3data {
   }
   deserialise(bit_reader: BitStream) {
     this.data.sampling_frequency_index = new DescribedValue(
-      bit_reader.getBits(4),
+      bit_reader.readBits(4),
       AVS3Asampling_frequency,
     );
-    this.data.nn_type = new DescribedValue(bit_reader.getBits(3), AVS3Anntype);
+    this.data.nn_type = new DescribedValue(bit_reader.readBits(3), AVS3Anntype);
     bit_reader.skipBits(1);
-    this.data.content_type = bit_reader.getBits(4);
+    this.data.content_type = bit_reader.readBits(4);
     if (this.data.content_type === CHANNEL_BASED) {
       this.data.channel_number_index = new DescribedValue(
-        bit_reader.getBits(7),
+        bit_reader.readBits(7),
         AVS3Achannel_number,
       );
       bit_reader.skipBits(1);
     } else if (this.data.content_type === OBJECT_BASED) {
-      this.data.number_objects = bit_reader.getBits(7);
+      this.data.number_objects = bit_reader.readBits(7);
       bit_reader.skipBits(1);
     } else if (this.data.content_type === CHANNEL_AND_OBJECT) {
       this.data.channel_number_index = new DescribedValue(
-        bit_reader.getBits(7),
+        bit_reader.readBits(7),
         AVS3Achannel_number,
       );
       bit_reader.skipBits(1);
-      this.data.number_objects = bit_reader.getBits(7);
+      this.data.number_objects = bit_reader.readBits(7);
       bit_reader.skipBits(1);
     } else if (this.data.content_type === HOA) {
-      this.data.hoa_order = bit_reader.getBits(4);
+      this.data.hoa_order = bit_reader.readBits(4);
     }
-    this.data.total_bitrate = bit_reader.getUint16();
-    this.data.resolution = new DescribedValue(bit_reader.getBits(2), AVS3Aresolution);
+    this.data.total_bitrate = bit_reader.readUint16();
+    this.data.resolution = new DescribedValue(bit_reader.readBits(2), AVS3Aresolution);
   }
   toString(): string {
     return super.toString(this.data);
@@ -157,19 +157,19 @@ class AVS3GHConfig extends AVS3data {
     this.deserialise(bit_reader);
   }
   deserialise(bit_reader: BitStream) {
-    this.data.sampling_frequency_index = bit_reader.getBits(4);
-    this.data.anc_data_index = bit_reader.getBit();
-    this.data.coding_profile = new DescribedValue(bit_reader.getBits(3), AVS3Acodingprofile);
-    this.data.bitstream_type = bit_reader.getBits(1);
-    this.data.channel_number_index = bit_reader.getBits(7);
-    this.data.bitrate_index = bit_reader.getBits(4);
-    this.data.raw_frame_length = bit_reader.getUint16();
-    this.data.resolution = new DescribedValue(bit_reader.getBits(2), AVS3Aresolution);
-    const addition_info_length = bit_reader.getUint16();
+    this.data.sampling_frequency_index = bit_reader.readBits(4);
+    this.data.anc_data_index = bit_reader.readBit();
+    this.data.coding_profile = new DescribedValue(bit_reader.readBits(3), AVS3Acodingprofile);
+    this.data.bitstream_type = bit_reader.readBits(1);
+    this.data.channel_number_index = bit_reader.readBits(7);
+    this.data.bitrate_index = bit_reader.readBits(4);
+    this.data.raw_frame_length = bit_reader.readUint16();
+    this.data.resolution = new DescribedValue(bit_reader.readBits(2), AVS3Aresolution);
+    const addition_info_length = bit_reader.readUint16();
     if (addition_info_length > 0) {
       this.data.addition_info = [];
       for (let i = 0; i < addition_info_length; i++)
-        this.data.addition_info.push(bit_reader.getUint8());
+        this.data.addition_info.push(bit_reader.readUint8());
     }
   }
   toString(): string {
@@ -194,18 +194,18 @@ class AVS3LLConfig extends AVS3data {
     this.deserialise(bit_reader);
   }
   deserialise(bit_reader: BitStream) {
-    this.data.sampling_frequency_index = bit_reader.getBits(4);
+    this.data.sampling_frequency_index = bit_reader.readBits(4);
     if (this.data.sampling_frequency_index === 0xf)
-      this.data.sampling_frequency = bit_reader.getUint24();
-    this.data.anc_data_index = bit_reader.getBit();
-    this.data.coding_profile = new DescribedValue(bit_reader.getBits(3), AVS3Acodingprofile);
-    this.data.channel_number = bit_reader.getUint8();
-    this.data.resolution = new DescribedValue(bit_reader.getBits(2), AVS3Aresolution);
-    const addition_info_length = bit_reader.getUint16();
+      this.data.sampling_frequency = bit_reader.readUint24();
+    this.data.anc_data_index = bit_reader.readBit();
+    this.data.coding_profile = new DescribedValue(bit_reader.readBits(3), AVS3Acodingprofile);
+    this.data.channel_number = bit_reader.readUint8();
+    this.data.resolution = new DescribedValue(bit_reader.readBits(2), AVS3Aresolution);
+    const addition_info_length = bit_reader.readUint16();
     if (addition_info_length > 0) {
       this.data.addition_info = [];
       for (let i = 0; i < addition_info_length; i++)
-        this.data.addition_info.push(bit_reader.getUint8());
+        this.data.addition_info.push(bit_reader.readUint8());
     }
     bit_reader.skipBits(2); // reserved
   }
@@ -226,7 +226,7 @@ export class dca3Box extends Box {
   parse(stream: MultiBufferStream) {
     const bit_reader = new BitStream(stream);
     bit_reader.appendUint8(this.size - this.hdr_size);
-    this.audio_codec_id = new DescribedValue(bit_reader.getBits(4), AVS3Acodec);
+    this.audio_codec_id = new DescribedValue(bit_reader.readBits(4), AVS3Acodec);
 
     switch (this.audio_codec_id.value) {
       case FULL_RATE_CODING:
