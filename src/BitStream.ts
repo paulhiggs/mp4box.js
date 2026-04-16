@@ -45,11 +45,12 @@ export class BitStream {
   private buffer: Array<number>;
   private stream: MultiBufferStream | DataStream;
   private state: State;
-  private big_endian = true; // results are returned Big Endian
+  private endianness: Endianness;
 
-  constructor(stream: MultiBufferStream | DataStream) {
+  constructor(stream: MultiBufferStream | DataStream, endianness?: Endianness) {
     this.state = new State();
     this.stream = stream;
+    this.endianness = endianness ? endianness : Endianness.BIG_ENDIAN;
   }
 
   appendUint8(count = 1): void {
@@ -72,7 +73,8 @@ export class BitStream {
       return 0;
     }
     const bit: number =
-      (this.buffer[this.state.rbyte] >> (this.big_endian ? 7 - this.state.rbit : this.state.rbit)) &
+      (this.buffer[this.state.rbyte] >>
+        (this.endianness === Endianness.BIG_ENDIAN ? 7 - this.state.rbit : this.state.rbit)) &
       0x01;
     if (++this.state.rbit > 7) {
       this.state.rbyte++;
@@ -88,7 +90,8 @@ export class BitStream {
       return 0;
     }
     const bit: number =
-      (this.buffer[this.state.rbyte] >> (this.big_endian ? 7 - this.state.rbit : this.state.rbit)) &
+      (this.buffer[this.state.rbyte] >>
+        (this.endianness === Endianness.BIG_ENDIAN ? 7 - this.state.rbit : this.state.rbit)) &
       0x01;
     return bit;
   }
@@ -125,7 +128,7 @@ export class BitStream {
         return ff;
       } else {
         for (res = 0, i = 0; i < bytes; i++) {
-          if (this.big_endian)
+          if (this.endianness === Endianness.BIG_ENDIAN)
             res =
               (res << 8) +
               ((this.buffer[this.state.rbyte] << this.state.rbit) |
@@ -147,63 +150,50 @@ export class BitStream {
     return this.rdb(1);
   }
 
-  readUint16() {
-    return this.big_endian ? this.GetUInt16BE(this.rdb(2)) : this.GetUInt16LE(this.rdb(2));
+  readUint16(endianness?: Endianness) {
+    return (endianness ?? this.endianness) === Endianness.BIG_ENDIAN
+      ? this.GetUInt16BE(this.rdb(2))
+      : this.GetUInt16LE(this.rdb(2));
   }
+  private GetUInt16BE = function (val: number) {
+    return this.OSisLittleEndian() ? this.ByteSwap16(val) : val;
+  };
+  private GetUInt16LE = function (val: number) {
+    return this.OSisLittleEndian() ? val : this.ByteSwap16(val);
+  };
   private ByteSwap16 = function (x: number): number {
     return (x << 8) | (x >> 8);
   };
-  private CondByteSwap16BE = function (val: number): number {
-    return this.OSisLittleEndian() ? this._ByteSwap16(val) : val;
-  };
-  private CondByteSwap16LE = function (val: number) {
-    return this.OSisLittleEndian() ? val : this._ByteSwap16(val);
-  };
-  private GetUInt16BE = function (val: number) {
-    return this._CondByteSwap16BE(val);
-  };
-  private GetUInt16LE = function (val: number) {
-    return this.CondByteSwap16LE(val);
-  };
 
-  readUint24() {
-    return this.big_endian ? this.GetUInt24BE(this.rdb(3)) : this.GetUInt24LE(this.rdb(3));
+  readUint24(endianness?: Endianness) {
+    return (endianness ?? this.endianness) === Endianness.BIG_ENDIAN
+      ? this.GetUInt24BE(this.rdb(3))
+      : this.GetUInt24LE(this.rdb(3));
   }
 
   private ByteSwap24 = function (x: number) {
     return ((x & 0xff0000) >> 16) | (x & 0xff00) | (x & (0xff << 16));
   };
-  private CondByteSwap24BE = function (val: number) {
+  private GetUInt24BE = function (val: number) {
     return this.OSisLittleEndian() ? this.ByteSwap24(val) : val;
   };
-  private CondByteSwap24LE = function (val: number) {
-    return this.OSisLittleEndian() ? val : this._ByteSwap24(val);
-  };
-  private GetUInt24BE = function (val: number) {
-    return this._CondByteSwap24BE(val);
-  };
   private GetUInt24LE = function (val: number) {
-    return this._CondByteSwap24LE(val);
+    return this.OSisLittleEndian() ? val : this.ByteSwap24(val);
   };
 
-  readUint32() {
-    return this.big_endian ? this.GetUInt32BE(this.rdb(4)) : this._GetUInt32LE(this.rdb(4));
+  readUint32(endianness?: Endianness) {
+    return (endianness ?? this.endianness) === Endianness.BIG_ENDIAN
+      ? this.GetUInt32BE(this.rdb(4))
+      : this.GetUInt32LE(this.rdb(4));
   }
-
-  private _ByteSwap32 = function (x: number) {
+  private ByteSwap32 = function (x: number) {
     return (x << 24) | ((x << 8) & 0x00ff0000) | ((x >> 8) & 0x0000ff00) | (x >> 24);
   };
-  private CondByteSwap32BE = function (val: number) {
-    return this.OSisLittleEndian() ? this._ByteSwap32(val) : val;
-  };
-  private CondByteSwap32LE = function (val: number) {
-    return this.OSisLittleEndian() ? val : this._ByteSwap32(val);
-  };
   private GetUInt32BE = function (val: number) {
-    return this.CondByteSwap32BE(val);
+    return this.OSisLittleEndian() ? this.ByteSwap32(val) : val;
   };
-  private _GetUInt32LE = function (val: number) {
-    return this.CondByteSwap32LE(val);
+  private GetUInt32LE = function (val: number) {
+    return this.OSisLittleEndian() ? val : this.ByteSwap32(val);
   };
 
   readBits(bits: number): number {
@@ -216,7 +206,7 @@ export class BitStream {
       return 0;
     }
     let val = 0;
-    if (this.big_endian) {
+    if (this.endianness === Endianness.BIG_ENDIAN) {
       // Read leading bits up to byte boundary
       while (bits > 0 && this.state.rbit !== 0) {
         val = (val << 1) | this.readBit();
@@ -299,9 +289,9 @@ export class BitStream {
     while (!this.state.aligned) this.skipBit();
   }
 
-  private OSisLittleEndian(): boolean {
+  private OSisLittleEndian = function (): boolean {
     return this.stream.endianness === Endianness.LITTLE_ENDIAN;
-  }
+  };
 
   currentReadByteOffset(): number {
     return this.state.readByteOffset();
