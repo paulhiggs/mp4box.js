@@ -355,7 +355,21 @@ class vpcCSampleEntryBase extends VisualSampleEntry {
     if (bitDepth === 8) {
       bitDepth = '08';
     }
-    return `${baseCodec}.0${this.vpcC.profile}.${level}.${bitDepth}`;
+    const codec = `${baseCodec}.0${this.vpcC.profile}.${level}.${bitDepth}`;
+    // The optional fields can only be left out when they have their default values: 4:2:0
+    // colocated with luma, BT.709 primaries, transfer and matrix, and legal range
+    const vpcC = this.vpcC;
+    const optional = [
+      vpcC.chromaSubsampling,
+      vpcC.colourPrimaries,
+      vpcC.transferCharacteristics,
+      vpcC.matrixCoefficients,
+      vpcC.videoFullRangeFlag,
+    ];
+    if (vpcC.version === 1 && optional.join('.') !== '1.1.1.1.0') {
+      return `${codec}.${optional.map(value => String(value).padStart(2, '0')).join('.')}`;
+    }
+    return codec;
   }
 }
 
@@ -391,6 +405,23 @@ export class mp4vSampleEntry extends VisualSampleEntry {
   static override readonly fourcc = 'mp4v' as const;
   // ISO/IEC 14496-14:2020 Section 6.7.3
   box_name = 'MP4VisualSampleEntry' as const;
+
+  esds: esdsBox;
+  esdss: Array<esdsBox>;
+
+  getCodec() {
+    const baseCodec = super.getCodec();
+    if (this.esds && this.esds.esd) {
+      const oti = this.esds.esd.getOTI();
+      // RFC 6381: for MPEG-4 Visual (0x20), the profile and level indication follows the OTI
+      const profileLevel = oti === 0x20 ? this.esds.esd.getVisualProfileLevel() : undefined;
+      return (
+        baseCodec + '.' + decimalToHex(oti) + (profileLevel !== undefined ? '.' + profileLevel : '')
+      );
+    } else {
+      return baseCodec;
+    }
+  }
 }
 
 export class mp4aSampleEntry extends AudioSampleEntry {
